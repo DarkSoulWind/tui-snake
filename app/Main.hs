@@ -164,18 +164,7 @@ initialState = do
     return $
         Game
             { _snake =
-                [ V2 (getX gridSize `div` 2) (getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 1 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 2 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 3 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 4 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 5 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 6 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 7 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 8 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 9 $ getY gridSize `div` 2)
-                -- , V2 (getX gridSize `div` 2) ((+) 10 $ getY gridSize `div` 2)
-                ]
+                [V2 (getX gridSize `div` 2) (getY gridSize `div` 2)]
             , _food = V2 1 1
             , _dir = North
             , _score = 0
@@ -190,4 +179,6 @@ main = do
         writeBChan chan Tick
         threadDelay 100000
     st <- initialState
-    void $ customMainWithDefaultVty (Just chan) app st
+    (result, _) <- customMainWithDefaultVty (Just chan) app st
+    let sc = result ^. score
+    putStrLn $ "Your final score was " ++ show sc
