@@ -7,10 +7,11 @@ import Brick.BChan (newBChan, writeBChan)
 import Brick.Widgets.Border (borderWithLabel)
 import Brick.Widgets.Border.Style (unicode)
 import Brick.Widgets.Center (center)
+import Brick.Widgets.Table (alignLeft, alignRight, columnBorders, renderTable, rowBorders, surroundingBorder, table)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Monad (forever, void)
 import Control.Monad.IO.Class (MonadIO (liftIO))
-import Graphics.Vty (Event (EvKey), Key (KChar, KDown, KLeft, KRight, KUp), defAttr, green, red, white)
+import Graphics.Vty (Event (EvKey), Key (KChar, KDown, KLeft, KRight, KUp), defAttr, green, red)
 import Lens.Micro
 import Lens.Micro.TH (makeLenses)
 import System.Random
@@ -56,10 +57,40 @@ type Name = ()
 data Cell = Empty | Snake | Food deriving (Show, Eq)
 
 drawUI :: Game -> [Widget Name]
-drawUI st = [center $ scoreBox <+> grid]
+drawUI st = [center $ leftSide <+> grid]
   where
-    scoreBox = borderWithLabel (str " Score ") . withBorderStyle unicode . padLeftRight 5 . padTopBottom 1 . str . show $ st ^. score
-    grid = borderWithLabel (str " Snake ") $ withBorderStyle unicode rows
+    leftSide =
+        padRight (Pad 1)
+            . vBox
+            $ [scoreBox, controls]
+    controls =
+        borderWithLabel (str " Controls ")
+            . padAll 1
+            . renderTable
+            $ controlsTable
+    controlsTable =
+        rowBorders False
+            . columnBorders False
+            . surroundingBorder False
+            . alignRight 1
+            . alignLeft 0
+            . table
+            $ [ [padRight (Pad 2) $ str "Arrow keys", padLeft (Pad 2) $ str "Move"]
+              , [padRight (Pad 2) $ str "q", padLeft (Pad 2) $ str "Quit"]
+              , [padRight (Pad 2) $ str "r", padLeft (Pad 2) $ str "Restart"]
+              ]
+    scoreBox =
+        borderWithLabel (str " Score ")
+            . withBorderStyle unicode
+            . padLeftRight 11
+            . padTopBottom 1
+            . str
+            . show
+            $ st ^. score
+    grid =
+        borderWithLabel (if st ^. dead then withAttr deathMessageAttr $ str " DEAD " else str " Snake ")
+            . withBorderStyle unicode
+            $ rows
     rows =
         vBox
             [ hBox
@@ -70,7 +101,7 @@ drawUI st = [center $ scoreBox <+> grid]
     drawCell x
         | x `elem` st ^. snake = withAttr snakeCellAttr $ str "  "
         | x == st ^. food = withAttr foodCellAttr $ str "  "
-        | otherwise = withAttr emptyCellAttr $ str "  "
+        | otherwise = str "  "
 
 handleEvent :: BrickEvent Name Tick -> EventM Name Game ()
 handleEvent (AppEvent Tick) = modify step
@@ -133,18 +164,18 @@ loopSnakeHead (V2 x y) = V2 (x `mod` (getX gridSize + 1)) (y `mod` (getY gridSiz
 addSnakeSegment :: Snake -> Snake
 addSnakeSegment s = s ++ [head s]
 
-emptyCellAttr, snakeCellAttr, foodCellAttr :: AttrName
-emptyCellAttr = attrName "emptyCell"
+snakeCellAttr, foodCellAttr, deathMessageAttr :: AttrName
 snakeCellAttr = attrName "snakeCell"
 foodCellAttr = attrName "foodCell"
+deathMessageAttr = attrName "deathMessage"
 
 theMap :: AttrMap
 theMap =
     attrMap
         defAttr
-        [ (emptyCellAttr, bg white)
-        , (snakeCellAttr, bg green)
+        [ (snakeCellAttr, bg green)
         , (foodCellAttr, bg red)
+        , (deathMessageAttr, fg red)
         ]
 
 app :: App Game Tick Name
@@ -165,11 +196,11 @@ initialState = do
         Game
             { _snake =
                 [V2 (getX gridSize `div` 2) (getY gridSize `div` 2)]
-            , _food = V2 1 1
+            , _food = head $ zipWith V2 xValues yValues
             , _dir = North
             , _score = 0
             , _dead = False
-            , _nextFood = zipWith V2 xValues yValues
+            , _nextFood = tail $ zipWith V2 xValues yValues
             }
 
 main :: IO ()

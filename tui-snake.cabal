@@ -68,7 +68,7 @@ executable tui-snake
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.2.0, brick, containers, linear, microlens, microlens-th, random, vty
+    build-depends:    base ^>=4.17.2.0, brick, microlens, microlens-th, random, vty
 
     -- Directories containing source files.
     hs-source-dirs:   app
